@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="tr" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Routines - Günlük Görev ve Rutin Takibi</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        .task-checkbox:checked + div {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+        .task-checkbox:checked + div i {
+            opacity: 1;
+            transform: scale(1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        .task-dragging {
+            opacity: 0.4;
+            transform: scale(0.98);
+        }
+        .task-drag-over {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Üst Bilgi Çubuğu (Header) -->
+    <header class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200 dark:border-slate-700/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Logo ve İsim -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <i class="fa-solid fa-calendar-check text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-brand-600 to-purple-600 dark:from-brand-400 dark:to-purple-400 bg-clip-text text-transparent">
+                        Daily Routines
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Bulut Senkronizasyonlu Görev Takibi</p>
+                </div>
+            </div>
+
+            <!-- Sağ Aksiyon Butonları -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Bugüne Git Butonu -->
+                <button onclick="goToToday()" class="px-3.5 py-2 text-xs sm:text-sm font-medium rounded-xl bg-brand-50 dark:bg-slate-700 text-brand-600 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-slate-600 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                    <span>Bugün</span>
+                </button>
+
+                <!-- Kullanıcı Hesap / Giriş Durumu -->
+                <div id="authContainer" class="flex items-center">
+                    <button onclick="openAuthModal()" id="loginBtn" class="px-3.5 py-2 text-xs sm:text-sm font-medium rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition flex items-center space-x-2 shadow-sm">
+                        <i class="fa-brands fa-google"></i>
+                        <span>Giriş Yap</span>
+                    </button>
+                    <div id="userProfile" class="hidden items-center space-x-2">
+                        <button onclick="openAuthModal()" class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Hesap Bilgileri">
+                            <img id="userAvatar" src="https://placehold.co/32x32/6366f1/ffffff?text=U" alt="Profil" class="w-7 h-7 rounded-full object-cover">
+                            <span id="userName" class="text-xs font-semibold max-w-[100px] sm:max-w-[140px] truncate">Kullanıcı</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tema Değiştirici -->
+                <button onclick="toggleTheme()" id="themeToggleBtn" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center justify-center" title="Temayı Değiştir">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:inline text-amber-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Ana İçerik Alanı -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            
+            <!-- SOL SÜTUN: Takvim ve Aylık Özet (5 Sütun) -->
+            <div class="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
+                
+                <!-- Takvim Kartı -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/80 p-5">
+                    <!-- Ay ve Yıl Navigasyonu -->
+                    <div class="flex items-center justify-between mb-5">
+                        <h2 id="calendarMonthYear" class="text-lg font-bold text-slate-800 dark:text-white capitalize">
+                            Kasım 2026
+                        </h2>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition" title="Önceki Ay">
+                                <i class="fa-solid fa-chevron-left text-sm"></i>
+                            </button>
+                            <button onclick="changeMonth(1)" class="w-9 h-9 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition" title="Sonraki Ay">
+                                <i class="fa-solid fa-chevron-right text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Haftanın Günleri Başlığı -->
+                    <div class="grid grid-cols-7 gap-1 text-center mb-2">
+                        <div class="text-xs font-semibold text-slate-400 dark:text-slate-500 py-1">Pzt</div>
+                        <div class="text-xs font-semibold text-slate-400 dark:text-slate-500 py-1">Sal</div>
+                        <div class="text-xs font-semibold text-slate-400 dark:text-slate-500 py-1">Çar</div>
+                        <div class="text-xs font-semibold text-slate-400 dark:text-slate-500 py-1">Per</div>
+                        <div class="text-xs font-semibold text-slate-400 dark:text-slate-500 py-1">Cum</div>
+                        <div class="text-xs font-semibold text-slate-400 dark:text-slate-500 py-1">Cmt</div>
+                        <div class="text-xs font-semibold text-slate-400 dark:text-slate-500 py-1">Paz</div>
+                    </div>
+
+                    <!-- Takvim Günleri Izgarası -->
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1.5">
+                        <!-- JS ile doldurulacak -->
+                    </div>
+
+                    <!-- Takvim Renk Açıklamaları (Legend) -->
+                    <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                            <span>Tamamlandı</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                            <span>Devam Eden</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600 inline-block"></span>
+                            <span>Başlanmadı</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- İstatistik / Geçmiş Özeti Kartı -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/80 p-5">
+                    <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
+                        Genel Kayıt Özeti
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
+                            <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Kayıtlı Gün Sayısı</div>
+                            <div class="flex items-baseline space-x-2">
+                                <span id="statActiveDays" class="text-2xl font-bold text-slate-800 dark:text-white">0</span>
+                                <span class="text-xs text-brand-500 font-medium">gün</span>
+                            </div>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
+                            <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Tamamlanan Görev</div>
+                            <div class="flex items-baseline space-x-2">
+                                <span id="statCompletedTotal" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">0</span>
+                                <span id="statTotalTasks" class="text-xs text-slate-400">/ 0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SAĞ SÜTUN: Seçili Gün Görevleri ve Ekleme Formu (7 Sütun) -->
+            <div class="lg:col-span-7 xl:col-span-8 space-y-6">
+                
+                <!-- Seçili Gün Başlık ve İlerleme Kartı -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/80 p-5 sm:p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center space-x-2.5 mb-1">
+                                <span id="selectedDateBadge" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
+                                    Bugün
+                                </span>
+                                <span id="selectedDateISO" class="text-xs text-slate-400 dark:text-slate-500 font-mono"></span>
+                            </div>
+                            <h2 id="selectedDateTitle" class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white">
+                                17 Kasım 2026, Salı
+                            </h2>
+                        </div>
+
+                        <!-- Rutin / Görev Aktarma Butonları -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="copyUnfinishedFromPreviousDay()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center space-x-2" title="Bir önceki günün görevlerini bu güne kopyala">
+                                <i class="fa-solid fa-clock-rotate-left text-brand-500"></i>
+                                <span>Dünden Aktar</span>
+                            </button>
+                            <button onclick="openCopyModal()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-brand-50 dark:bg-slate-700 text-brand-600 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-slate-600 transition flex items-center space-x-2" title="Başka bir günün görevlerini seçili güne kopyala">
+                                <i class="fa-solid fa-copy text-brand-500"></i>
+                                <span>Başka Günden Kopyala</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Günlük İlerleme Çubuğu -->
+                    <div class="mt-6">
+                        <div class="flex items-center justify-between text-xs sm:text-sm mb-2">
+                            <span id="progressText" class="font-medium text-slate-600 dark:text-slate-300">
+                                Henüz görev eklenmedi
+                            </span>
+                            <span id="progressPercentage" class="font-bold text-brand-600 dark:text-brand-400">
+                                %0
+                            </span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div id="progressBar" class="h-full bg-gradient-to-r from-brand-500 to-emerald-500 rounded-full transition-all duration-500 w-0"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Yeni Görev Ekleme Formu -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/80 p-5 sm:p-6">
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-plus text-brand-500"></i>
+                        <span>Yeni Görev / Rutin Ekle</span>
+                    </h3>
+                    <form id="addTaskForm" onsubmit="handleAddTask(event)" class="space-y-4">
+                        <div>
+                            <label for="taskTitleInput" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                Görev Başlığı <span class="text-rose-500">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="taskTitleInput" 
+                                required
+                                placeholder="Örn: 30 Sayfa Kitap Oku, Su İç, Egzersiz Yap..." 
+                                class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm transition"
+                            >
+                        </div>
+
+                        <div>
+                            <label for="taskDescInput" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                Görev Açıklaması / Notlar <span class="text-slate-400 font-normal lowercase">(isteğe bağlı)</span>
+                            </label>
+                            <textarea 
+                                id="taskDescInput" 
+                                rows="2"
+                                placeholder="Görevle ilgili detayları, alt adımları veya notlarınızı buraya yazabilirsiniz..." 
+                                class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm transition resize-y"
+                            ></textarea>
+                        </div>
+
+                        <div class="flex items-center justify-end pt-1">
+                            <button 
+                                type="submit" 
+                                class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-semibold text-sm shadow-md shadow-brand-500/20 transition flex items-center justify-center space-x-2"
+                            >
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Seçili Güne Ekle</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Görev Listesi Bölümü -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/80 p-5 sm:p-6">
+                    <!-- Filtre Sekmeleri ve Başlık -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-700/80">
+                        <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-list-check text-brand-500"></i>
+                            <span>Günün Görevleri</span>
+                            <span id="taskCountBadge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">0</span>
+                        </h3>
+
+                        <!-- Filtre Butonları -->
+                        <div class="flex items-center bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl self-start sm:self-auto">
+                            <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm">
+                                Tümü
+                            </button>
+                            <button onclick="setFilter('pending')" id="filter-pending" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-300 hover:text-slate-900">
+                                Bekleyenler
+                            </button>
+                            <button onclick="setFilter('completed')" id="filter-completed" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-300 hover:text-slate-900">
+                                Tamamlananlar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Görevlerin Listeleneceği Konteyner -->
+                    <div id="tasksContainer" class="space-y-3">
+                        <!-- JS ile doldurulacak -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Görev Düzenleme Modalı -->
+    <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 dark:border-slate-700 animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-to-square text-brand-500"></i>
+                    <span>Görevi Düzenle</span>
+                </h3>
+                <button onclick="closeEditModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form onsubmit="saveEditedTask(event)" class="space-y-4">
+                <input type="hidden" id="editTaskId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                        Görev Başlığı <span class="text-rose-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="editTaskTitle" 
+                        required
+                        class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+                    >
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                        Görev Açıklaması
+                    </label>
+                    <textarea 
+                        id="editTaskDesc" 
+                        rows="3"
+                        class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm resize-y"
+                    ></textarea>
+                </div>
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition">
+                        İptal
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20 transition">
+                        Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Başka Günden Kopyalama Modalı -->
+    <div id="copyModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 dark:border-slate-700 animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-copy text-brand-500"></i>
+                    <span>Başka Günden Görev Kopyala</span>
+                </h3>
+                <button onclick="closeCopyModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                        Kaynak Tarih Seçin
+                    </label>
+                    <input 
+                        type="date" 
+                        id="sourceDateInput"
+                        class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+                    >
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    Seçtiğiniz tarihteki görevler, aktif olan <span id="targetDateSpan" class="font-semibold text-brand-600 dark:text-brand-400"></span> tarihine (zaten mevcut olmayanlar) kopyalanacaktır.
+                </p>
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeCopyModal()" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition">
+                        İptal
+                    </button>
+                    <button type="button" onclick="executeCopyFromDate()" class="px-5 py-2 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20 transition">
+                        Görevleri Kopyala
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kullanıcı Giriş / Profil Modalı -->
+    <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 dark:border-slate-700 animate-fade-in text-center">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/30 mx-auto mb-4">
+                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-1">Google ile Senkronizasyon</h3>
+            <p id="authModalDesc" class="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                Google hesabınızla giriş yaparak tüm rutinlerinizi buluta kaydedebilir ve istediğiniz cihazdan erişebilirsiniz.
+            </p>
+
+            <div id="authLoggedOutView" class="space-y-3">
+                <button onclick="loginWithGoogle()" class="w-full py-3 px-4 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-semibold text-sm shadow-sm transition flex items-center justify-center space-x-3">
+                    <i class="fa-brands fa-google text-rose-500 text-base"></i>
+                    <span>Google ile Giriş Yap</span>
+                </button>
+            </div>
+
+            <div id="authLoggedInView" class="hidden space-y-4">
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700 flex items-center space-x-3 text-left">
+                    <img id="modalUserAvatar" src="https://placehold.co/40x40/6366f1/ffffff?text=U" class="w-10 h-10 rounded-full object-cover">
+                    <div class="min-w-0 flex-1">
+                        <div id="modalUserName" class="text-sm font-bold text-slate-800 dark:text-white truncate">Kullanıcı</div>
+                        <div id="modalUserEmail" class="text-xs text-slate-400 truncate">eposta@domain.com</div>
+                    </div>
+                </div>
+                <button onclick="logoutAccount()" class="w-full py-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 text-rose-600 dark:text-rose-400 font-semibold text-xs sm:text-sm transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Oturumu Kapat</span>
+                </button>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700">
+                <button type="button" onclick="closeAuthModal()" class="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bildirim (Toast) Kutusu -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Firebase SDK Entegrasyonu -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase değişkenleri
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'daily-routines-app-v1';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDummyKeyForLocalPreview123456",
+            authDomain: "daily-routines.firebaseapp.com",
+            projectId: "daily-routines",
+            storageBucket: "daily-routines.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        let unsubscribeFirestore = null;
+
+        window.appAuth = auth;
+        window.appDb = db;
+
+        // Oturum Durumunu Dinle
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                updateUIForLoggedInUser(user);
+                setupCloudSync(user.uid);
+            } else {
+                updateUIForLoggedOut();
+                // Anonim giriş yap veya yerel verileri yükle
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (err) {
+                    console.log('Anonim oturum açma:', err);
+                    loadDataFromLocalStorage();
+                    renderAll();
+                }
+            }
+        });
+
+        window.loginWithGoogle = async function() {
+            try {
+                await signInWithPopup(auth, googleProvider);
+                closeAuthModal();
+                showToast('Google ile başarıyla giriş yapıldı', 'success');
+            } catch (error) {
+                console.error('Google Giriş Hatası:', error);
+                showToast('Giriş yapılırken bir hata oluştu', 'warning');
+            }
+        };
+
+        window.logoutAccount = async function() {
+            try {
+                if (unsubscribeFirestore) unsubscribeFirestore();
+                await signOut(auth);
+                closeAuthModal();
+                routinesData = {};
+                renderAll();
+                showToast('Oturum kapatıldı', 'info');
+            } catch (error) {
+                console.error('Çıkış Hatası:', error);
+            }
+        };
+
+        function updateUIForLoggedInUser(user) {
+            const isAnonymous = user.isAnonymous;
+            const loginBtn = document.getElementById('loginBtn');
+            const userProfile = document.getElementById('userProfile');
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+
+            const modalLoggedOut = document.getElementById('authLoggedOutView');
+            const modalLoggedIn = document.getElementById('authLoggedInView');
+            const modalAvatar = document.getElementById('modalUserAvatar');
+            const modalName = document.getElementById('modalUserName');
+            const modalEmail = document.getElementById('modalUserEmail');
+
+            if (isAnonymous) {
+                loginBtn.classList.remove('hidden');
+                userProfile.classList.add('hidden');
+            } else {
+                loginBtn.classList.add('hidden');
+                userProfile.classList.remove('hidden');
+
+                const photoURL = user.photoURL || 'https://placehold.co/32x32/6366f1/ffffff?text=' + (user.displayName?.[0] || 'U');
+                const displayName = user.displayName || 'Google Kullanıcısı';
+                const email = user.email || 'Bulut Hesabı';
+
+                userAvatar.src = photoURL;
+                userName.textContent = displayName;
+
+                modalLoggedOut.classList.add('hidden');
+                modalLoggedIn.classList.remove('hidden');
+                modalAvatar.src = photoURL;
+                modalName.textContent = displayName;
+                modalEmail.textContent = email;
+            }
+        }
+
+        function updateUIForLoggedOut() {
+            const loginBtn = document.getElementById('loginBtn');
+            const userProfile = document.getElementById('userProfile');
+            const modalLoggedOut = document.getElementById('authLoggedOutView');
+            const modalLoggedIn = document.getElementById('authLoggedInView');
+
+            loginBtn.classList.remove('hidden');
+            userProfile.classList.add('hidden');
+            modalLoggedOut.classList.remove('hidden');
+            modalLoggedIn.classList.add('hidden');
+        }
+
+        function setupCloudSync(userId) {
+            if (unsubscribeFirestore) unsubscribeFirestore();
+            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'routines_data', 'record');
+
+            unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const cloudData = docSnap.data().data;
+                    if (cloudData) {
+                        routinesData = cloudData;
+                        renderAll();
+                    }
+                } else {
+                    // Bulutta veri yoksa, yerel verileri buluta aktar veya örnek verileri yükle
+                    loadDataFromLocalStorage();
+                    saveDataToCloud();
+                    renderAll();
+                }
+            }, (error) => {
+                console.error('Firestore Senkronizasyon Hatası:', error);
+                loadDataFromLocalStorage();
+                renderAll();
+            });
+        }
+
+        window.saveDataToCloudOrLocal = function() {
+            const user = auth.currentUser;
+            if (user && !user.isAnonymous) {
+                saveDataToCloud();
+            } else {
+                saveDataToLocalStorage();
+            }
+        };
+
+        async function saveDataToCloud() {
+            const user = auth.currentUser;
+            if (!user) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'routines_data', 'record');
+                await setDoc(docRef, { data: routinesData, updatedAt: Date.now() });
+            } catch (e) {
+                console.error('Buluta kaydetme hatası:', e);
+            }
+        }
+
+        function loadDataFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem('daily_routines_records_v1');
+                if (raw) {
+                    routinesData = JSON.parse(raw);
+                } else {
+                    seedSampleHistoricalData();
+                }
+            } catch (e) {
+                routinesData = {};
+            }
+        }
+
+        function saveDataToLocalStorage() {
+            try {
+                localStorage.setItem('daily_routines_records_v1', JSON.stringify(routinesData));
+            } catch (e) {}
+        }
+
+        window.triggerCloudSave = saveDataToCloudOrLocal;
+    </script>
+
+    <!-- Uygulama Mantığı (JavaScript) -->
+    <script>
+        // --- UYGULAMA DURUMU ---
+        const THEME_KEY = 'daily_routines_theme';
+
+        const MONTHS_TR = [
+            'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+            'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+        ];
+        const DAYS_TR = [
+            'Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'
+        ];
+
+        let routinesData = {};
+        
+        let todayDate = new Date();
+        let selectedDateStr = formatDateISO(todayDate);
+        let currentCalendarMonth = todayDate.getMonth();
+        let currentCalendarYear = todayDate.getFullYear();
+        let currentFilter = 'all';
+        let draggedTaskId = null;
+
+        function formatDateISO(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseISODate(isoStr) {
+            const [y, m, d] = isoStr.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function formatTurkishFullDate(isoStr) {
+            const dateObj = parseISODate(isoStr);
+            const dayNum = dateObj.getDate();
+            const monthName = MONTHS_TR[dateObj.getMonth()];
+            const year = dateObj.getFullYear();
+            const dayName = DAYS_TR[dateObj.getDay()];
+            return `${dayNum} ${monthName} ${year}, ${dayName}`;
+        }
+
+        function initApp() {
+            loadTheme();
+        }
+
+        function seedSampleHistoricalData() {
+            const today = new Date();
+            const twoDaysAgo = new Date(today);
+            twoDaysAgo.setDate(today.getDate() - 2);
+            const twoDaysAgoISO = formatDateISO(twoDaysAgo);
+
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayISO = formatDateISO(yesterday);
+            const todayISO = formatDateISO(today);
+
+            routinesData[twoDaysAgoISO] = [
+                {
+                    id: 'sample-1',
+                    title: 'Sabah Esneme ve Yürüyüş',
+                    description: 'Açık havada 30 dakika tempolu yürüyüş ve omuz/sırt esneme hareketleri.',
+                    completed: true,
+                    createdAt: Date.now() - 172800000
+                },
+                {
+                    id: 'sample-2',
+                    title: 'Günlük Kitap Okuma Rutini',
+                    description: 'Uyumadan önce en az 25 sayfa kitap okunacak.',
+                    completed: true,
+                    createdAt: Date.now() - 172000000
+                }
+            ];
+
+            routinesData[yesterdayISO] = [
+                {
+                    id: 'sample-3',
+                    title: '2.5 Litre Su Tüketimi',
+                    description: 'Gün boyu masa başında su tüketimi hedefi.',
+                    completed: true,
+                    createdAt: Date.now() - 86400000
+                },
+                {
+                    id: 'sample-4',
+                    title: 'Yabancı Dil Kelime Tekrarı',
+                    description: '20 yeni kelime tekrarı.',
+                    completed: false,
+                    createdAt: Date.now() - 86000000
+                }
+            ];
+
+            routinesData[todayISO] = [
+                {
+                    id: 'sample-6',
+                    title: 'Sabah Kahvesi & Günlük Planlama',
+                    description: 'Bugünün öncelikli işlerini gözden geçir.',
+                    completed: true,
+                    createdAt: Date.now() - 3600000
+                },
+                {
+                    id: 'sample-7',
+                    title: '30 Dakika Egzersiz / Antrenman',
+                    description: 'Temel vücut ağırlığı egzersizleri.',
+                    completed: false,
+                    createdAt: Date.now() - 1800000
+                }
+            ];
+        }
+
+        // --- RENDER FONKSİYONLARI ---
+        window.renderAll = function() {
+            renderCalendar();
+            renderSelectedDayHeader();
+            renderTasksList();
+            renderGlobalStats();
+        }
+
+        function renderCalendar() {
+            const monthYearEl = document.getElementById('calendarMonthYear');
+            monthYearEl.textContent = `${MONTHS_TR[currentCalendarMonth]} ${currentCalendarYear}`;
+
+            const gridEl = document.getElementById('calendarGrid');
+            gridEl.innerHTML = '';
+
+            const firstDayOfMonth = new Date(currentCalendarYear, currentCalendarMonth, 1);
+            const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
+
+            let startDayIndex = firstDayOfMonth.getDay() - 1;
+            if (startDayIndex < 0) startDayIndex = 6;
+
+            for (let i = 0; i < startDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'h-11 sm:h-12 rounded-xl';
+                gridEl.appendChild(emptyCell);
+            }
+
+            const todayISO = formatDateISO(new Date());
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const cellDate = new Date(currentCalendarYear, currentCalendarMonth, day);
+                const cellISO = formatDateISO(cellDate);
+                const isSelected = cellISO === selectedDateStr;
+                const isToday = cellISO === todayISO;
+
+                const dayTasks = routinesData[cellISO] || [];
+                const totalTasks = dayTasks.length;
+                const completedTasks = dayTasks.filter(t => t.completed).length;
+
+                let dotHtml = '';
+                if (totalTasks > 0) {
+                    if (completedTasks === totalTasks) {
+                        dotHtml = `<span class="w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-500'}"></span>`;
+                    } else if (completedTasks > 0) {
+                        dotHtml = `<span class="w-2 h-2 rounded-full ${isSelected ? 'bg-amber-200' : 'bg-amber-500'}"></span>`;
+                    } else {
+                        dotHtml = `<span class="w-2 h-2 rounded-full ${isSelected ? 'bg-white/60' : 'bg-slate-300 dark:bg-slate-600'}"></span>`;
+                    }
+                }
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => selectDate(cellISO);
+
+                let baseClasses = 'h-11 sm:h-12 rounded-xl flex flex-col items-center justify-center relative transition font-medium text-sm ';
+                if (isSelected) {
+                    baseClasses += 'bg-brand-600 text-white shadow-md shadow-brand-500/30 font-bold scale-[1.03] z-10';
+                } else if (isToday) {
+                    baseClasses += 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-300 dark:border-brand-500/40 font-bold hover:bg-brand-100';
+                } else {
+                    baseClasses += 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70';
+                }
+
+                btn.className = baseClasses;
+                btn.innerHTML = `
+                    <span>${day}</span>
+                    <div class="h-2 flex items-center justify-center mt-0.5">
+                        ${dotHtml}
+                    </div>
+                `;
+                gridEl.appendChild(btn);
+            }
+        }
+
+        function renderSelectedDayHeader() {
+            const titleEl = document.getElementById('selectedDateTitle');
+            const badgeEl = document.getElementById('selectedDateBadge');
+            const isoEl = document.getElementById('selectedDateISO');
+
+            titleEl.textContent = formatTurkishFullDate(selectedDateStr);
+            isoEl.textContent = selectedDateStr;
+
+            const todayISO = formatDateISO(new Date());
+            if (selectedDateStr === todayISO) {
+                badgeEl.textContent = 'Bugün';
+                badgeEl.className = 'px-2.5 py-0.5 text-xs font-semibold rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300';
+            } else if (selectedDateStr < todayISO) {
+                badgeEl.textContent = 'Geçmiş Kayıt';
+                badgeEl.className = 'px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300';
+            } else {
+                badgeEl.textContent = 'Gelecek Planı';
+                badgeEl.className = 'px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300';
+            }
+
+            const dayTasks = routinesData[selectedDateStr] || [];
+            const total = dayTasks.length;
+            const completed = dayTasks.filter(t => t.completed).length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            const progressText = document.getElementById('progressText');
+            const progressPercentage = document.getElementById('progressPercentage');
+            const progressBar = document.getElementById('progressBar');
+
+            if (total === 0) {
+                progressText.textContent = 'Bu gün için henüz görev kaydı bulunmuyor';
+                progressPercentage.textContent = '%0';
+                progressBar.style.width = '0%';
+            } else {
+                progressText.textContent = `${total} görevden ${completed} tanesi tamamlandı`;
+                progressPercentage.textContent = `%${percent}`;
+                progressBar.style.width = `${percent}%`;
+            }
+        }
+
+        function renderTasksList() {
+            const container = document.getElementById('tasksContainer');
+            const countBadge = document.getElementById('taskCountBadge');
+            const allDayTasks = routinesData[selectedDateStr] || [];
+
+            countBadge.textContent = allDayTasks.length;
+            container.innerHTML = '';
+
+            const filteredTasks = allDayTasks.filter(task => {
+                if (currentFilter === 'pending') return !task.completed;
+                if (currentFilter === 'completed') return task.completed;
+                return true;
+            });
+
+            if (filteredTasks.length === 0) {
+                let emptyMessage = 'Bu gün için henüz bir görev eklenmemiş.';
+                let emptySub = 'Yukarıdaki formu kullanarak yeni bir günlük rutin veya görev ekleyebilirsiniz.';
+                if (allDayTasks.length > 0 && currentFilter === 'pending') {
+                    emptyMessage = 'Harika! Bekleyen görev kalmadı.';
+                    emptySub = 'Bu gündeki tüm görevlerinizi tamamladınız.';
+                } else if (allDayTasks.length > 0 && currentFilter === 'completed') {
+                    emptyMessage = 'Henüz tamamlanmış bir görev yok.';
+                    emptySub = 'Görevlerinizi tamamladıkça yanındaki kutucuğa tik atabilirsiniz.';
+                }
+
+                container.innerHTML = `
+                    <div class="py-10 px-4 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-800/30">
+                        <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-slate-700 text-brand-500 flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-clipboard-list text-xl"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">${emptyMessage}</p>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">${emptySub}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filteredTasks.forEach((task, index) => {
+                const item = document.createElement('div');
+                item.draggable = true;
+                item.dataset.taskId = task.id;
+                item.ondragstart = (e) => handleDragStart(e, task.id);
+                item.ondragover = (e) => handleDragOver(e);
+                item.ondragleave = (e) => handleDragLeave(e);
+                item.ondrop = (e) => handleDrop(e, task.id);
+                item.ondragend = (e) => handleDragEnd(e);
+
+                item.className = `group p-4 rounded-2xl border transition-all animate-fade-in ${
+                    task.completed 
+                        ? 'bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/50' 
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-500/50 shadow-sm'
+                }`;
+
+                const safeTitle = escapeHtml(task.title);
+                const safeDesc = escapeHtml(task.description || '');
+                const isFirst = index === 0;
+                const isLast = index === filteredTasks.length - 1;
+
+                item.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 mt-1 px-1 select-none" title="Sırayı değiştirmek için sürükleyin">
+                            <i class="fa-solid fa-grip-vertical text-sm"></i>
+                        </div>
+
+                        <label class="relative flex items-center cursor-pointer mt-0.5 select-none">
+                            <input 
+                                type="checkbox" 
+                                class="sr-only task-checkbox" 
+                                ${task.completed ? 'checked' : ''} 
+                                onchange="toggleTaskStatus('${task.id}')"
+                            >
+                            <div class="w-6 h-6 rounded-lg border-2 border-slate-300 dark:border-slate-500 flex items-center justify-center transition-colors duration-200 hover:border-emerald-500">
+                                <i class="fa-solid fa-check text-white text-xs opacity-0 transform scale-50 transition-all duration-200"></i>
+                            </div>
+                        </label>
+
+                        <div class="flex-1 min-w-0 cursor-pointer" onclick="toggleTaskStatus('${task.id}')">
+                            <h4 class="text-sm sm:text-base font-semibold break-words transition ${
+                                task.completed 
+                                    ? 'line-through text-slate-400 dark:text-slate-500' 
+                                    : 'text-slate-800 dark:text-slate-100'
+                            }">
+                                ${safeTitle}
+                            </h4>
+                            ${
+                                safeDesc 
+                                    ? `<p class="mt-1.5 text-xs sm:text-sm whitespace-pre-line break-words leading-relaxed ${
+                                        task.completed 
+                                            ? 'line-through text-slate-400/80 dark:text-slate-500/80' 
+                                            : 'text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60'
+                                    }">${safeDesc}</p>` 
+                                    : ''
+                            }
+                        </div>
+
+                        <div class="flex items-center space-x-0.5 sm:space-x-1 shrink-0">
+                            <button 
+                                type="button"
+                                onclick="moveTask('${task.id}', -1)" 
+                                ${isFirst ? 'disabled' : ''}
+                                class="w-7 h-8 rounded-lg ${isFirst ? 'text-slate-200 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-700'} transition flex items-center justify-center" 
+                                title="Yukarı Taşı"
+                            >
+                                <i class="fa-solid fa-arrow-up text-xs"></i>
+                            </button>
+                            <button 
+                                type="button"
+                                onclick="moveTask('${task.id}', 1)" 
+                                ${isLast ? 'disabled' : ''}
+                                class="w-7 h-8 rounded-lg ${isLast ? 'text-slate-200 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-700'} transition flex items-center justify-center" 
+                                title="Aşağı Taşı"
+                            >
+                                <i class="fa-solid fa-arrow-down text-xs"></i>
+                            </button>
+                            <button 
+                                type="button"
+                                onclick="openEditModal('${task.id}')" 
+                                class="w-8 h-8 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-700 transition flex items-center justify-center" 
+                                title="Görevi Düzenle"
+                            >
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button 
+                                type="button"
+                                onclick="deleteTask('${task.id}')" 
+                                class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition flex items-center justify-center" 
+                                title="Görevi Sil"
+                            >
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(item);
+            });
+        }
+
+        function renderGlobalStats() {
+            const dates = Object.keys(routinesData);
+            let activeDaysCount = 0;
+            let totalTasksCount = 0;
+            let completedTasksCount = 0;
+
+            dates.forEach(dateKey => {
+                const list = routinesData[dateKey] || [];
+                if (list.length > 0) {
+                    activeDaysCount++;
+                    totalTasksCount += list.length;
+                    completedTasksCount += list.filter(t => t.completed).length;
+                }
+            });
+
+            document.getElementById('statActiveDays').textContent = activeDaysCount;
+            document.getElementById('statCompletedTotal').textContent = completedTasksCount;
+            document.getElementById('statTotalTasks').textContent = `/ ${totalTasksCount}`;
+        }
+
+        // --- KULLANICI ETKİLEŞİMLERİ ---
+        window.selectDate = function(isoDateStr) {
+            selectedDateStr = isoDateStr;
+            const dateObj = parseISODate(isoDateStr);
+            currentCalendarMonth = dateObj.getMonth();
+            currentCalendarYear = dateObj.getFullYear();
+            renderAll();
+        }
+
+        window.changeMonth = function(offset) {
+            currentCalendarMonth += offset;
+            if (currentCalendarMonth > 11) {
+                currentCalendarMonth = 0;
+                currentCalendarYear++;
+            } else if (currentCalendarMonth < 0) {
+                currentCalendarMonth = 11;
+                currentCalendarYear--;
+            }
+            renderCalendar();
+        }
+
+        window.goToToday = function() {
+            const now = new Date();
+            selectDate(formatDateISO(now));
+            showToast('Bugünün tarihine gidildi', 'info');
+        }
+
+        window.handleAddTask = function(e) {
+            e.preventDefault();
+            const titleInput = document.getElementById('taskTitleInput');
+            const descInput = document.getElementById('taskDescInput');
+
+            const title = titleInput.value.trim();
+            const description = descInput.value.trim();
+
+            if (!title) return;
+
+            if (!routinesData[selectedDateStr]) {
+                routinesData[selectedDateStr] = [];
+            }
+
+            const newTask = {
+                id: 'task-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+                title: title,
+                description: description,
+                completed: false,
+                createdAt: Date.now()
+            };
+
+            routinesData[selectedDateStr].push(newTask);
+            save();
+
+            titleInput.value = '';
+            descInput.value = '';
+
+            renderAll();
+            showToast('Görev başarıyla eklendi', 'success');
+        }
+
+        window.toggleTaskStatus = function(taskId) {
+            const dayList = routinesData[selectedDateStr];
+            if (!dayList) return;
+
+            const task = dayList.find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                save();
+                renderAll();
+            }
+        }
+
+        window.deleteTask = function(taskId) {
+            const dayList = routinesData[selectedDateStr];
+            if (!dayList) return;
+
+            routinesData[selectedDateStr] = dayList.filter(t => t.id !== taskId);
+            if (routinesData[selectedDateStr].length === 0) {
+                delete routinesData[selectedDateStr];
+            }
+
+            save();
+            renderAll();
+            showToast('Görev silindi', 'info');
+        }
+
+        window.moveTask = function(taskId, direction) {
+            const dayList = routinesData[selectedDateStr];
+            if (!dayList || dayList.length < 2) return;
+
+            const visibleTasks = dayList.filter(task => {
+                if (currentFilter === 'pending') return !task.completed;
+                if (currentFilter === 'completed') return task.completed;
+                return true;
+            });
+
+            const currentVisibleIndex = visibleTasks.findIndex(t => t.id === taskId);
+            const targetVisibleIndex = currentVisibleIndex + direction;
+
+            if (currentVisibleIndex === -1 || targetVisibleIndex < 0 || targetVisibleIndex >= visibleTasks.length) {
+                return;
+            }
+
+            const targetTaskId = visibleTasks[targetVisibleIndex].id;
+            const realIndexA = dayList.findIndex(t => t.id === taskId);
+            const realIndexB = dayList.findIndex(t => t.id === targetTaskId);
+
+            if (realIndexA !== -1 && realIndexB !== -1) {
+                const temp = dayList[realIndexA];
+                dayList[realIndexA] = dayList[realIndexB];
+                dayList[realIndexB] = temp;
+
+                save();
+                renderTasksList();
+            }
+        }
+
+        // Drag & Drop
+        window.handleDragStart = function(e, taskId) {
+            draggedTaskId = taskId;
+            e.dataTransfer.effectAllowed = 'move';
+            setTimeout(() => {
+                e.target.classList.add('task-dragging');
+            }, 0);
+        }
+
+        window.handleDragOver = function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const card = e.currentTarget;
+            if (card.dataset.taskId !== draggedTaskId) {
+                card.classList.add('task-drag-over');
+            }
+        }
+
+        window.handleDragLeave = function(e) {
+            e.currentTarget.classList.remove('task-drag-over');
+        }
+
+        window.handleDrop = function(e, targetTaskId) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('task-drag-over');
+
+            if (!draggedTaskId || draggedTaskId === targetTaskId) return;
+
+            const dayList = routinesData[selectedDateStr];
+            if (!dayList) return;
+
+            const fromIndex = dayList.findIndex(t => t.id === draggedTaskId);
+            const toIndex = dayList.findIndex(t => t.id === targetTaskId);
+
+            if (fromIndex !== -1 && toIndex !== -1) {
+                const [movedItem] = dayList.splice(fromIndex, 1);
+                dayList.splice(toIndex, 0, movedItem);
+                save();
+                renderTasksList();
+            }
+            draggedTaskId = null;
+        }
+
+        window.handleDragEnd = function(e) {
+            e.currentTarget.classList.remove('task-dragging');
+            document.querySelectorAll('.task-drag-over').forEach(el => el.classList.remove('task-drag-over'));
+            draggedTaskId = null;
+        }
+
+        window.openEditModal = function(taskId) {
+            const dayList = routinesData[selectedDateStr] || [];
+            const task = dayList.find(t => t.id === taskId);
+            if (!task) return;
+
+            document.getElementById('editTaskId').value = task.id;
+            document.getElementById('editTaskTitle').value = task.title;
+            document.getElementById('editTaskDesc').value = task.description || '';
+
+            const modal = document.getElementById('editModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        window.closeEditModal = function() {
+            const modal = document.getElementById('editModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        window.saveEditedTask = function(e) {
+            e.preventDefault();
+            const taskId = document.getElementById('editTaskId').value;
+            const newTitle = document.getElementById('editTaskTitle').value.trim();
+            const newDesc = document.getElementById('editTaskDesc').value.trim();
+
+            if (!newTitle) return;
+
+            const dayList = routinesData[selectedDateStr] || [];
+            const task = dayList.find(t => t.id === taskId);
+            if (task) {
+                task.title = newTitle;
+                task.description = newDesc;
+                save();
+                renderAll();
+                showToast('Görev güncellendi', 'success');
+            }
+            closeEditModal();
+        }
+
+        // Önceki Günden Aktar
+        window.copyUnfinishedFromPreviousDay = function() {
+            const currDate = parseISODate(selectedDateStr);
+            const prevDate = new Date(currDate);
+            prevDate.setDate(currDate.getDate() - 1);
+            const prevISO = formatDateISO(prevDate);
+            copyTasksFromSourceDate(prevISO);
+        }
+
+        // Başka Günden Kopyalama Modalı İşlemleri
+        window.openCopyModal = function() {
+            document.getElementById('targetDateSpan').textContent = formatTurkishFullDate(selectedDateStr);
+            const sourceInput = document.getElementById('sourceDateInput');
+            sourceInput.value = selectedDateStr;
+
+            const modal = document.getElementById('copyModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        window.closeCopyModal = function() {
+            const modal = document.getElementById('copyModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        window.executeCopyFromDate = function() {
+            const sourceDate = document.getElementById('sourceDateInput').value;
+            if (!sourceDate) {
+                showToast('Lütfen bir kaynak tarih seçin', 'warning');
+                return;
+            }
+            if (sourceDate === selectedDateStr) {
+                showToast('Kaynak ve hedef tarih aynı olamaz', 'warning');
+                return;
+            }
+            closeCopyModal();
+            copyTasksFromSourceDate(sourceDate);
+        }
+
+        function copyTasksFromSourceDate(sourceISO) {
+            const sourceTasks = routinesData[sourceISO] || [];
+            if (sourceTasks.length === 0) {
+                showToast('Seçilen tarihte kopyalanacak görev bulunamadı', 'warning');
+                return;
+            }
+
+            if (!routinesData[selectedDateStr]) {
+                routinesData[selectedDateStr] = [];
+            }
+
+            const existingTitles = new Set(routinesData[selectedDateStr].map(t => t.title.toLowerCase()));
+            let copiedCount = 0;
+
+            sourceTasks.forEach(pt => {
+                if (!existingTitles.has(pt.title.toLowerCase())) {
+                    routinesData[selectedDateStr].push({
+                        id: 'task-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+                        title: pt.title,
+                        description: pt.description,
+                        completed: false, // Kopyalananlar başlangıçta tamamlanmamış olsun
+                        createdAt: Date.now()
+                    });
+                    copiedCount++;
+                }
+            });
+
+            if (copiedCount > 0) {
+                save();
+                renderAll();
+                showToast(`${formatTurkishFullDate(sourceISO)} tarihinden ${copiedCount} görev kopyalandı`, 'success');
+            } else {
+                showToast('Seçilen gündeki görevlerin tümü zaten bu günde mevcut', 'info');
+            }
+        }
+
+        window.setFilter = function(filterType) {
+            currentFilter = filterType;
+            const filters = ['all', 'pending', 'completed'];
+            filters.forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f === filterType) {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-300 hover:text-slate-900';
+                }
+            });
+            renderTasksList();
+        }
+
+        // Giriş Modalı
+        window.openAuthModal = function() {
+            const modal = document.getElementById('authModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        window.closeAuthModal = function() {
+            const modal = document.getElementById('authModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Kaydetme Yardımıcısı
+        function save() {
+            if (window.triggerCloudSave) {
+                window.triggerCloudSave();
+            }
+        }
+
+        // Tema
+        function loadTheme() {
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        window.toggleTheme = function() {
+            const htmlEl = document.documentElement;
+            if (htmlEl.classList.contains('dark')) {
+                htmlEl.classList.remove('dark');
+                localStorage.setItem(THEME_KEY, 'light');
+            } else {
+                htmlEl.classList.add('dark');
+                localStorage.setItem(THEME_KEY, 'dark');
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            let icon = 'fa-circle-info text-brand-400';
+            if (type === 'success') icon = 'fa-circle-check text-emerald-400';
+            if (type === 'warning') icon = 'fa-triangle-exclamation text-amber-400';
+
+            toast.className = 'pointer-events-auto flex items-center space-x-2.5 px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-700 text-white text-xs sm:text-sm font-medium shadow-lg animate-fade-in';
+            toast.innerHTML = `
+                <i class="fa-solid ${icon}"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
