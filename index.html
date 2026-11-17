@@ -464,49 +464,48 @@
     <!-- Firebase SDK Entegrasyonu -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Firebase değişkenleri
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'daily-routines-app-v1';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyDummyKeyForLocalPreview123456",
-            authDomain: "daily-routines.firebaseapp.com",
-            projectId: "daily-routines",
-            storageBucket: "daily-routines.appspot.com",
-            messagingSenderId: "1234567890",
-            appId: "1:1234567890:web:abcdef"
+        // Firebase proje ayarları (bu değerler gizli değildir; güvenliği Firestore kuralları sağlar)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDzIBa7eeG_Tl5H_jriaQm17y7HkZg3cew",
+            authDomain: "daily-routines-3f0ed.firebaseapp.com",
+            projectId: "daily-routines-3f0ed",
+            storageBucket: "daily-routines-3f0ed.firebasestorage.app",
+            messagingSenderId: "538152222685",
+            appId: "1:538152222685:web:28670502220519b0c44034"
         };
+
+        const LOCAL_KEY = 'daily_routines_records_v1';
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const googleProvider = new GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
 
         let unsubscribeFirestore = null;
 
         window.appAuth = auth;
         window.appDb = db;
 
+        // Kullanıcının verisinin buluttaki yeri: users/{uid}/routines/record
+        function userDocRef(uid) {
+            return doc(db, 'users', uid, 'routines', 'record');
+        }
+
         // Oturum Durumunu Dinle
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 updateUIForLoggedInUser(user);
-                setupCloudSync(user.uid);
+                await setupCloudSync(user.uid);
             } else {
+                if (unsubscribeFirestore) { unsubscribeFirestore(); unsubscribeFirestore = null; }
                 updateUIForLoggedOut();
-                // Anonim giriş yap veya yerel verileri yükle
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (err) {
-                    console.log('Anonim oturum açma:', err);
-                    loadDataFromLocalStorage();
-                    renderAll();
-                }
+                // Giriş yapılmamışken veriler sadece bu cihazda (localStorage) tutulur
+                loadDataFromLocalStorage();
+                renderAll();
             }
         });
 
@@ -517,17 +516,22 @@
                 showToast('Google ile başarıyla giriş yapıldı', 'success');
             } catch (error) {
                 console.error('Google Giriş Hatası:', error);
-                showToast('Giriş yapılırken bir hata oluştu', 'warning');
+                const messages = {
+                    'auth/popup-blocked': 'Tarayıcı giriş penceresini engelledi. Açılır pencerelere izin verip tekrar deneyin.',
+                    'auth/popup-closed-by-user': 'Giriş penceresi kapatıldı.',
+                    'auth/cancelled-popup-request': 'Giriş penceresi kapatıldı.',
+                    'auth/unauthorized-domain': 'Bu adres Firebase\'de yetkili değil (Authorized domains).',
+                    'auth/network-request-failed': 'İnternet bağlantısı sorunu, tekrar deneyin.'
+                };
+                showToast(messages[error.code] || ('Giriş yapılamadı: ' + (error.code || 'bilinmeyen hata')), 'warning');
             }
         };
 
         window.logoutAccount = async function() {
             try {
-                if (unsubscribeFirestore) unsubscribeFirestore();
+                if (unsubscribeFirestore) { unsubscribeFirestore(); unsubscribeFirestore = null; }
                 await signOut(auth);
                 closeAuthModal();
-                routinesData = {};
-                renderAll();
                 showToast('Oturum kapatıldı', 'info');
             } catch (error) {
                 console.error('Çıkış Hatası:', error);
@@ -535,7 +539,6 @@
         };
 
         function updateUIForLoggedInUser(user) {
-            const isAnonymous = user.isAnonymous;
             const loginBtn = document.getElementById('loginBtn');
             const userProfile = document.getElementById('userProfile');
             const userAvatar = document.getElementById('userAvatar');
@@ -547,26 +550,22 @@
             const modalName = document.getElementById('modalUserName');
             const modalEmail = document.getElementById('modalUserEmail');
 
-            if (isAnonymous) {
-                loginBtn.classList.remove('hidden');
-                userProfile.classList.add('hidden');
-            } else {
-                loginBtn.classList.add('hidden');
-                userProfile.classList.remove('hidden');
+            loginBtn.classList.add('hidden');
+            userProfile.classList.remove('hidden');
+            userProfile.classList.add('flex');
 
-                const photoURL = user.photoURL || 'https://placehold.co/32x32/6366f1/ffffff?text=' + (user.displayName?.[0] || 'U');
-                const displayName = user.displayName || 'Google Kullanıcısı';
-                const email = user.email || 'Bulut Hesabı';
+            const photoURL = user.photoURL || 'https://placehold.co/32x32/6366f1/ffffff?text=' + (user.displayName?.[0] || 'U');
+            const displayName = user.displayName || 'Google Kullanıcısı';
+            const email = user.email || 'Bulut Hesabı';
 
-                userAvatar.src = photoURL;
-                userName.textContent = displayName;
+            userAvatar.src = photoURL;
+            userName.textContent = displayName;
 
-                modalLoggedOut.classList.add('hidden');
-                modalLoggedIn.classList.remove('hidden');
-                modalAvatar.src = photoURL;
-                modalName.textContent = displayName;
-                modalEmail.textContent = email;
-            }
+            modalLoggedOut.classList.add('hidden');
+            modalLoggedIn.classList.remove('hidden');
+            modalAvatar.src = photoURL;
+            modalName.textContent = displayName;
+            modalEmail.textContent = email;
         }
 
         function updateUIForLoggedOut() {
@@ -577,37 +576,81 @@
 
             loginBtn.classList.remove('hidden');
             userProfile.classList.add('hidden');
+            userProfile.classList.remove('flex');
             modalLoggedOut.classList.remove('hidden');
             modalLoggedIn.classList.add('hidden');
         }
 
-        function setupCloudSync(userId) {
-            if (unsubscribeFirestore) unsubscribeFirestore();
-            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'routines_data', 'record');
+        // Giriş yapmadan önce bu cihazda girilmiş gerçek görevleri (örnek görevler hariç) okur
+        function readLocalUserData() {
+            try {
+                const raw = localStorage.getItem(LOCAL_KEY);
+                if (!raw) return {};
+                const data = JSON.parse(raw) || {};
+                const result = {};
+                Object.keys(data).forEach(dateKey => {
+                    const tasks = (data[dateKey] || []).filter(t => !String(t.id).startsWith('sample-'));
+                    if (tasks.length > 0) result[dateKey] = tasks;
+                });
+                return result;
+            } catch (e) {
+                return {};
+            }
+        }
 
+        // Yerel ve bulut verisini birleştirir: aynı id'li görevde bulut sürümü geçerli olur
+        function mergeData(cloudData, localData) {
+            const merged = JSON.parse(JSON.stringify(cloudData || {}));
+            Object.keys(localData).forEach(dateKey => {
+                const cloudTasks = merged[dateKey] || [];
+                const cloudIds = new Set(cloudTasks.map(t => t.id));
+                const extra = localData[dateKey].filter(t => !cloudIds.has(t.id));
+                if (extra.length > 0) merged[dateKey] = cloudTasks.concat(extra);
+            });
+            return merged;
+        }
+
+        async function setupCloudSync(userId) {
+            if (unsubscribeFirestore) { unsubscribeFirestore(); unsubscribeFirestore = null; }
+            const docRef = userDocRef(userId);
+
+            // 1) İlk girişte: bu cihazda giriş yapmadan eklenmiş görevleri bulutla birleştir
+            try {
+                const snap = await getDoc(docRef);
+                const cloudData = snap.exists() ? (snap.data().data || {}) : {};
+                const localData = readLocalUserData();
+                const hasLocal = Object.keys(localData).length > 0;
+
+                routinesData = hasLocal ? mergeData(cloudData, localData) : cloudData;
+                renderAll();
+
+                if (hasLocal || !snap.exists()) {
+                    await setDoc(docRef, { data: routinesData, updatedAt: Date.now() });
+                }
+                if (hasLocal) {
+                    localStorage.removeItem(LOCAL_KEY);
+                    showToast('Bu cihazdaki görevler hesabına aktarıldı', 'success');
+                }
+            } catch (error) {
+                console.error('Bulut verisi okunamadı:', error);
+                showToast('Bulut verisine ulaşılamadı', 'warning');
+            }
+
+            // 2) Canlı dinleme: başka bir cihazda yapılan değişiklikler anında buraya gelir
             unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    const cloudData = docSnap.data().data;
-                    if (cloudData) {
-                        routinesData = cloudData;
-                        renderAll();
-                    }
-                } else {
-                    // Bulutta veri yoksa, yerel verileri buluta aktar veya örnek verileri yükle
-                    loadDataFromLocalStorage();
-                    saveDataToCloud();
+                    routinesData = docSnap.data().data || {};
                     renderAll();
                 }
             }, (error) => {
                 console.error('Firestore Senkronizasyon Hatası:', error);
-                loadDataFromLocalStorage();
-                renderAll();
+                showToast('Senkronizasyon hatası', 'warning');
             });
         }
 
         window.saveDataToCloudOrLocal = function() {
             const user = auth.currentUser;
-            if (user && !user.isAnonymous) {
+            if (user) {
                 saveDataToCloud();
             } else {
                 saveDataToLocalStorage();
@@ -618,20 +661,25 @@
             const user = auth.currentUser;
             if (!user) return;
             try {
-                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'routines_data', 'record');
-                await setDoc(docRef, { data: routinesData, updatedAt: Date.now() });
+                await setDoc(userDocRef(user.uid), { data: routinesData, updatedAt: Date.now() });
             } catch (e) {
                 console.error('Buluta kaydetme hatası:', e);
+                showToast('Buluta kaydedilemedi', 'warning');
             }
         }
 
         function loadDataFromLocalStorage() {
             try {
-                const raw = localStorage.getItem('daily_routines_records_v1');
+                const raw = localStorage.getItem(LOCAL_KEY);
                 if (raw) {
                     routinesData = JSON.parse(raw);
                 } else {
-                    seedSampleHistoricalData();
+                    routinesData = {};
+                    // Örnek görevler sadece uygulama bu cihazda ilk kez açıldığında gösterilir
+                    if (!localStorage.getItem('daily_routines_seeded')) {
+                        seedSampleHistoricalData();
+                        localStorage.setItem('daily_routines_seeded', '1');
+                    }
                 }
             } catch (e) {
                 routinesData = {};
@@ -640,7 +688,7 @@
 
         function saveDataToLocalStorage() {
             try {
-                localStorage.setItem('daily_routines_records_v1', JSON.stringify(routinesData));
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(routinesData));
             } catch (e) {}
         }
 
